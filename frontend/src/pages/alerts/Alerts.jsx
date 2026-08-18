@@ -1,0 +1,13 @@
+import { useEffect, useState } from "react";
+import { FiAlertTriangle, FiCheckCircle } from "react-icons/fi";
+import DashboardLayout from "../../components/dashboard/DashboardLayout";
+import { getAlerts, resolveAlert } from "../../services/alertService";
+
+function Alerts() {
+  const [alerts,setAlerts]=useState([]); const [loading,setLoading]=useState(true);
+  async function load(){setLoading(true);try{const r=await getAlerts();setAlerts(r.data||[]);}finally{setLoading(false);}}
+  useEffect(()=>{load();const i=setInterval(load,5000);return()=>clearInterval(i);},[]);
+  async function handleResolve(id){try{await resolveAlert(id);setAlerts(a=>a.map(x=>x.id===id?{...x,is_resolved:true}:x));}catch(e){alert(e.response?.data?.message||"Failed to resolve alert");}}
+  return <DashboardLayout><div className="mb-6"><span className="text-xs font-bold uppercase tracking-[0.2em] text-rose-500">Operational Monitoring</span><h2 className="text-3xl font-black text-slate-900 dark:text-white mt-2">Alerts</h2><p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Rule-based alerts generated from live compressor telemetry.</p></div>{loading?<p className="text-sm text-slate-400">Loading alerts…</p>:<div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-3">{alerts.map(a=><div key={a.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border border-slate-200 dark:border-slate-700 rounded-xl p-4"><div className="flex items-start gap-3"><div className={`w-9 h-9 rounded-lg flex items-center justify-center ${a.level==='critical'?'bg-red-500/10 text-red-500':'bg-amber-500/10 text-amber-500'}`}><FiAlertTriangle size={18}/></div><div><div className="flex items-center gap-2"><h3 className="font-bold text-slate-900 dark:text-white">{a.title}</h3><span className={`text-[10px] uppercase font-bold ${a.level==='critical'?'text-red-500':'text-amber-500'}`}>{a.level}</span>{a.is_resolved&&<span className="text-[10px] uppercase font-bold text-emerald-500">Resolved</span>}</div><p className="text-sm text-slate-600 dark:text-slate-400 mt-1">{a.message}</p><p className="text-xs text-slate-400 mt-1">{a.asset_code} · {new Date(a.created_at).toLocaleString()}</p></div></div>{!a.is_resolved&&<button onClick={()=>handleResolve(a.id)} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"><FiCheckCircle/> Resolve</button>}</div>)}{!alerts.length&&<div className="text-center py-12 text-slate-400">No alerts.</div>}</div>}</DashboardLayout>;
+}
+export default Alerts;

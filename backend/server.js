@@ -6,6 +6,11 @@ const pool = require("./config/db");
 
 // NEW
 const authRoutes = require("./routes/authRoutes");
+const telemetryRoutes = require("./routes/telemetryRoutes");
+const userRoutes = require("./routes/userRoutes");
+const assetRoutes = require("./routes/assetRoutes");
+const alertRoutes = require("./routes/alertRoutes");
+const maintenanceRoutes = require("./routes/maintenanceRoutes");
 
 const app = express();
 
@@ -15,6 +20,11 @@ app.use(express.json());
 
 // NEW
 app.use("/api/auth", authRoutes);
+app.use("/api/telemetry", telemetryRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/assets", assetRoutes);
+app.use("/api/alerts", alertRoutes);
+app.use("/api/maintenance", maintenanceRoutes);
 
 // Home Route
 app.get("/", (req, res) => {

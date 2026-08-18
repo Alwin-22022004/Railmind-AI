@@ -1,0 +1,16 @@
+{
+  "name": "railway-air-compressor-simulation",
+  "version": "1.0.0",
+  "description": "Physics-informed railway air compressor digital twin simulation and AI training dataset generator",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "generate-dataset": "node scripts/generateDataset.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

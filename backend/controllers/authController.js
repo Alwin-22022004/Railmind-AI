@@ -117,6 +117,17 @@ const login = async (req, res) => {
         }
 
         // Generate JWT Token
+        const permissionsResult = await pool.query(
+            `SELECT p.code
+             FROM permissions p
+             WHERE (EXISTS (SELECT 1 FROM role_permissions rp WHERE rp.role=$1 AND rp.permission_code=p.code)
+                    OR EXISTS (SELECT 1 FROM user_permissions up WHERE up.user_id=$2 AND up.permission_code=p.code AND up.allowed=TRUE))
+               AND NOT EXISTS (SELECT 1 FROM user_permissions deny_up WHERE deny_up.user_id=$2 AND deny_up.permission_code=p.code AND deny_up.allowed=FALSE)
+             ORDER BY p.category,p.code`,
+            [user.role, user.id]
+        );
+        const permissions = permissionsResult.rows.map((r) => r.code);
+
         const token = jwt.sign(
             {
                 id: user.id,
@@ -137,6 +148,7 @@ const login = async (req, res) => {
                 fullName: user.full_name,
                 email: user.email,
                 role: user.role,
+                permissions,
             },
         });
 

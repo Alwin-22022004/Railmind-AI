@@ -1,0 +1,3 @@
+-- No data-specific admin user is created here because credentials are installation-specific.
+-- To create/promote an admin in a local demo, use:
+--   npm run promote-admin -- <email>

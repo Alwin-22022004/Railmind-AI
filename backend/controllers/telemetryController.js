@@ -115,19 +115,102 @@ const getHistory = async (req, res) => {
 
 async function createRuleAlerts(assetId, assetCode, sim) {
   const rules = [];
-  if (Number(sim.vibration) > 4) rules.push(["warning", "High vibration", `Vibration on ${assetCode} is ${sim.vibration} mm/s.`, "rule"]);
-  if (Number(sim.motorTemperature) > 82) rules.push(["warning", "High motor temperature", `Motor temperature on ${assetCode} is ${sim.motorTemperature} °C.`, "rule"]);
-  if (Number(sim.oilPressure) < 2.5) rules.push(["critical", "Low oil pressure", `Oil pressure on ${assetCode} is ${sim.oilPressure} bar.`, "rule"]);
-  if (Number(sim.airPressure) < 8.0) rules.push(["warning", "Low air pressure", `Air pressure on ${assetCode} is ${sim.airPressure} bar.`, "rule"]);
-  if (Number(sim.airLeakageRate) > 12) rules.push(["warning", "Air leakage detected", `Air leakage on ${assetCode} is ${sim.airLeakageRate}%.`, "rule"]);
 
-  for (const [level,title,message,source] of rules) {
+  if (sim.vibration !== undefined && Number(sim.vibration) > 4.0) {
+    rules.push({
+      level: "warning",
+      alertType: "HIGH_VIBRATION",
+      title: "HIGH VIBRATION",
+      message: `Vibration on ${assetCode} is ${sim.vibration} mm/s (threshold: 4.0 mm/s).`,
+      parameter: "vibration",
+      actualValue: Number(sim.vibration),
+      thresholdValue: 4.0,
+      recommendation: "Inspect bearings, mounting and alignment.",
+    });
+  }
+
+  if (sim.motorTemperature !== undefined && Number(sim.motorTemperature) > 82.0) {
+    rules.push({
+      level: "warning",
+      alertType: "HIGH_MOTOR_TEMPERATURE",
+      title: "HIGH MOTOR TEMPERATURE",
+      message: `Motor temperature on ${assetCode} is ${sim.motorTemperature} °C (threshold: 82.0 °C).`,
+      parameter: "motorTemperature",
+      actualValue: Number(sim.motorTemperature),
+      thresholdValue: 82.0,
+      recommendation: "Inspect cooling, motor load and ventilation.",
+    });
+  }
+
+  if (sim.oilPressure !== undefined && Number(sim.oilPressure) < 2.5) {
+    rules.push({
+      level: "critical",
+      alertType: "LOW_OIL_PRESSURE",
+      title: "LOW OIL PRESSURE",
+      message: `Oil pressure on ${assetCode} is ${sim.oilPressure} bar (threshold: 2.5 bar).`,
+      parameter: "oilPressure",
+      actualValue: Number(sim.oilPressure),
+      thresholdValue: 2.5,
+      recommendation: "Inspect lubrication system, oil level and pump.",
+    });
+  }
+
+  if (sim.airPressure !== undefined && Number(sim.airPressure) < 8.0) {
+    rules.push({
+      level: "warning",
+      alertType: "LOW_AIR_PRESSURE",
+      title: "LOW AIR PRESSURE",
+      message: `Air pressure on ${assetCode} is ${sim.airPressure} bar (threshold: 8.0 bar).`,
+      parameter: "airPressure",
+      actualValue: Number(sim.airPressure),
+      thresholdValue: 8.0,
+      recommendation: "Inspect compressor output, valves and air circuit.",
+    });
+  }
+
+  if (sim.airLeakageRate !== undefined && Number(sim.airLeakageRate) > 12.0) {
+    rules.push({
+      level: "warning",
+      alertType: "AIR_LEAKAGE",
+      title: "AIR LEAKAGE",
+      message: `Air leakage rate on ${assetCode} is ${sim.airLeakageRate}% (threshold: 12.0%).`,
+      parameter: "airLeakageRate",
+      actualValue: Number(sim.airLeakageRate),
+      thresholdValue: 12.0,
+      recommendation: "Inspect valves, hoses, seals and fittings.",
+    });
+  }
+
+  for (const rule of rules) {
+    // 5-minute deduplication per asset and alert type for active alerts
     const existing = await pool.query(
-      `SELECT id FROM alerts WHERE asset_id=$1 AND title=$2 AND is_resolved=FALSE AND created_at > NOW()-INTERVAL '5 minutes' LIMIT 1`,
-      [assetId,title]
+      `SELECT id FROM alerts
+       WHERE asset_id = $1
+         AND (alert_type = $2 OR title = $3)
+         AND is_resolved = FALSE
+         AND created_at > NOW() - INTERVAL '5 minutes'
+       LIMIT 1`,
+      [assetId, rule.alertType, rule.title]
     );
+
     if (!existing.rows.length) {
-      await pool.query(`INSERT INTO alerts(asset_id,level,title,message,source) VALUES($1,$2,$3,$4,$5)`, [assetId,level,title,message,source]);
+      await pool.query(
+        `INSERT INTO alerts (
+          asset_id, level, title, message, source, alert_type,
+          trigger_parameter, actual_value, threshold_value, recommendation
+        ) VALUES ($1, $2, $3, $4, 'rule', $5, $6, $7, $8, $9)`,
+        [
+          assetId,
+          rule.level,
+          rule.title,
+          rule.message,
+          rule.alertType,
+          rule.parameter,
+          rule.actualValue,
+          rule.thresholdValue,
+          rule.recommendation,
+        ]
+      );
     }
   }
 }

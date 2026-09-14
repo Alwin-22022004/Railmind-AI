@@ -24,3 +24,7 @@ export async function updateUserAccess(id, data) {
   const response = await api.put(`/users/${id}/access`, data);
   return response.data;
 }
+export async function getMaintenanceEngineers() {
+  const response = await api.get("/users/engineers");
+  return response.data;
+}

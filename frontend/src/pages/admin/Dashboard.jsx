@@ -14,16 +14,26 @@ import TelemetryStatusBanner from "../../components/telemetry/TelemetryStatusBan
 import { SkeletonCard, SkeletonTable } from "../../components/common/SkeletonLoader";
 import { useLatestTelemetry, useTelemetryHistory } from "../../hooks/useTelemetry";
 
+import { getAlerts } from "../../services/alertService";
+
 function Dashboard() {
   const { assets, loading, loadError } = useLatestTelemetry();
   const [selectedId, setSelectedId] = useState(null);
   const [modalAsset, setModalAsset] = useState(null);
-  const history = useTelemetryHistory(selectedId, 40);
+  const [activeAlerts, setActiveAlerts] = useState([]);
 
-  // Default the chart to the first compressor once we know one exists.
+  const activeId = selectedId || assets[0]?.id || null;
+  const history = useTelemetryHistory(activeId, 40);
+
   useEffect(() => {
-    if (!selectedId && assets[0]) setSelectedId(assets[0].id);
-  }, [assets, selectedId]);
+    let isMounted = true;
+    getAlerts({ status: "ACTIVE" })
+      .then((res) => {
+        if (isMounted) setActiveAlerts(res.data || []);
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
 
   const reportingAssets = assets.filter((a) => a.hasTelemetry && typeof a.healthScore === "number");
   const avgHealth =
@@ -31,9 +41,14 @@ function Dashboard() {
       ? Math.round(reportingAssets.reduce((sum, a) => sum + a.healthScore, 0) / reportingAssets.length)
       : 100;
 
-  const criticalCount = reportingAssets.filter(
-    (a) => a.healthStatus === "CRITICAL" || a.healthStatus === "MAINTENANCE_REQUIRED"
-  ).length;
+  const criticalAlertsCount = activeAlerts.filter((a) => a.level === "critical").length;
+  const warningAlertsCount = activeAlerts.filter((a) => a.level === "warning").length;
+  const compressorsNeedingAttention = new Set([
+    ...reportingAssets
+      .filter((a) => a.healthStatus === "CRITICAL" || a.healthStatus === "MAINTENANCE_REQUIRED" || a.healthStatus === "WARNING")
+      .map((a) => a.asset_code),
+    ...activeAlerts.map((a) => a.asset_code),
+  ]).size;
 
   const handleExportReport = () => {
     const reportData = JSON.stringify(assets, null, 2);
@@ -89,8 +104,8 @@ function Dashboard() {
           {/* Card 3: Needs Attention */}
           <StatCard
             title="Needs Attention"
-            value={criticalCount}
-            subtitle={criticalCount > 0 ? `${criticalCount} critical alert` : "0 critical · 0 warning"}
+            value={compressorsNeedingAttention}
+            subtitle={`${criticalAlertsCount} critical · ${warningAlertsCount} warning alerts`}
             icon={FiAlertTriangle}
           />
 

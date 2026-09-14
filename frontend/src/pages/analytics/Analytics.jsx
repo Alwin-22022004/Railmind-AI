@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FiTrendingUp } from "react-icons/fi";
 
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
@@ -35,11 +35,8 @@ const CHART_GROUPS = [
 function Analytics() {
   const { assets, loading, loadError } = useLatestTelemetry();
   const [selectedId, setSelectedId] = useState(null);
-  const history = useTelemetryHistory(selectedId, 60);
-
-  useEffect(() => {
-    if (!selectedId && assets[0]) setSelectedId(assets[0].id);
-  }, [assets, selectedId]);
+  const activeId = selectedId || assets[0]?.id || null;
+  const history = useTelemetryHistory(activeId, 60);
 
   return (
     <DashboardLayout>
@@ -47,17 +44,23 @@ function Analytics() {
         <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Analytics</h2>
 
         {assets.length > 0 && (
-          <select
-            value={selectedId || ""}
-            onChange={(e) => setSelectedId(e.target.value)}
-            className="text-sm rounded-lg px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-          >
+          <div>
+            <label htmlFor="analytics-asset-select" className="sr-only">Select compressor asset</label>
+            <select
+              id="analytics-asset-select"
+              name="activeId"
+              aria-label="Select compressor asset"
+              value={activeId || ""}
+              onChange={(e) => setSelectedId(e.target.value)}
+              className="text-sm rounded-lg px-3 py-2 border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+            >
             {assets.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.id}
               </option>
             ))}
           </select>
+          </div>
         )}
       </div>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">

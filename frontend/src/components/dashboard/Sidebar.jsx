@@ -2,7 +2,6 @@ import {
   FaTachometerAlt,
   FaCogs,
   FaChartLine,
-  FaRobot,
   FaExclamationTriangle,
   FaUsers,
   FaSignOutAlt,

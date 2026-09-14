@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FiCheckCircle, FiDatabase, FiServer, FiRadio, FiCpu } from "react-icons/fi";
+import { FiDatabase, FiServer, FiRadio, FiCpu } from "react-icons/fi";
 
 function SystemStatusStrip() {
   const [syncTime, setSyncTime] = useState("");

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FiCpu, FiList, FiPlus, FiCheckCircle, FiPower } from "react-icons/fi";
 
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
@@ -20,15 +20,12 @@ function Compressors() {
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState("");
   const [createSuccess, setCreateSuccess] = useState("");
-  const history = useTelemetryHistory(selectedId, 40);
+  const activeId = selectedId || assets[0]?.id || null;
+  const history = useTelemetryHistory(activeId, 40);
 
   const canManageAssets = user?.role === "ADMIN" && hasPermission("assets.manage");
 
-  useEffect(() => {
-    if (!selectedId && assets[0]) setSelectedId(assets[0].id);
-  }, [assets, selectedId]);
-
-  const selectedAsset = assets.find((a) => a.id === selectedId) || null;
+  const selectedAsset = assets.find((a) => a.id === activeId) || null;
 
   const handleCreate = async (e) => {
     e.preventDefault();
@@ -101,9 +98,11 @@ function Compressors() {
           </div>
 
           <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-end">
-            <label className="block">
+            <label htmlFor="compressor-id-input" className="block">
               <span className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Compressor ID</span>
               <input
+                id="compressor-id-input"
+                name="assetCode"
                 value={form.assetCode}
                 onChange={(e) => setForm((f) => ({ ...f, assetCode: e.target.value.toUpperCase() }))}
                 placeholder="COMP-009"
@@ -111,9 +110,11 @@ function Compressors() {
                 required
               />
             </label>
-            <label className="block">
+            <label htmlFor="compressor-zone-input" className="block">
               <span className="block text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Zone (optional)</span>
               <input
+                id="compressor-zone-input"
+                name="zone"
                 value={form.zone}
                 onChange={(e) => setForm((f) => ({ ...f, zone: e.target.value }))}
                 placeholder="Coach A3 / Loco Shed"
@@ -125,8 +126,10 @@ function Compressors() {
             </button>
           </form>
 
-          <label className="mt-3 inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 cursor-pointer">
+          <label htmlFor="compressor-start-immediately-checkbox" className="mt-3 inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 cursor-pointer">
             <input
+              id="compressor-start-immediately-checkbox"
+              name="startImmediately"
               type="checkbox"
               checked={form.startImmediately}
               onChange={(e) => setForm((f) => ({ ...f, startImmediately: e.target.checked }))}

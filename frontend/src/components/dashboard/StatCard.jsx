@@ -1,5 +1,3 @@
-import React from "react";
-
 function CircularProgress({ value = 100, size = 44, strokeWidth = 4 }) {
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;

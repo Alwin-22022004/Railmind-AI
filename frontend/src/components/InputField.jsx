@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 function InputField({
   label,
   type = "text",
@@ -5,12 +7,18 @@ function InputField({
   register,
   name,
   error,
+  id,
 }) {
+  const generatedId = useId();
+  const fieldId = id || `${name}-${generatedId}`;
+
   return (
     <div className="flex flex-col">
-      <label className="text-gray-300 mb-2">{label}</label>
+      <label htmlFor={fieldId} className="text-gray-300 mb-2">{label}</label>
 
       <input
+        id={fieldId}
+        name={name}
         type={type}
         placeholder={placeholder}
         {...register(name)}

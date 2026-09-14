@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
-function PasswordField({ label, placeholder, register, name, error }) {
+function PasswordField({ label, placeholder, register, name, error, id }) {
   const [showPassword, setShowPassword] = useState(false);
+  const generatedId = useId();
+  const fieldId = id || `${name}-${generatedId}`;
 
   return (
     <div className="flex flex-col">
-      <label className="text-gray-300 mb-2">{label}</label>
+      <label htmlFor={fieldId} className="text-gray-300 mb-2">{label}</label>
 
       <div className="relative">
         <input
+          id={fieldId}
+          name={name}
           type={showPassword ? "text" : "password"}
           placeholder={placeholder}
           {...register(name)}

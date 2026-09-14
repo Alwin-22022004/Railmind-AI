@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import StatusBadge from "./StatusBadge";
 import { TELEMETRY_FIELDS } from "../../utils/telemetryUtils";
-import { FiSearch, FiDownload, FiFilter, FiRefreshCw } from "react-icons/fi";
+import { FiSearch, FiDownload, FiRefreshCw } from "react-icons/fi";
 
 function FleetTable({ assets, selectedId, onSelect, onRowClick, onRefresh }) {
   const [searchTerm, setSearchTerm] = useState("");
@@ -91,8 +91,12 @@ function FleetTable({ assets, selectedId, onSelect, onRowClick, onRefresh }) {
         <div className="flex flex-wrap items-center gap-2">
           {/* Search */}
           <div className="relative">
+            <label htmlFor="fleet-table-search-input" className="sr-only">Search asset</label>
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
             <input
+              id="fleet-table-search-input"
+              name="searchTerm"
+              aria-label="Search asset"
               type="text"
               placeholder="Search asset..."
               value={searchTerm}
@@ -103,7 +107,11 @@ function FleetTable({ assets, selectedId, onSelect, onRowClick, onRefresh }) {
 
           {/* Status filter */}
           <div className="relative">
+            <label htmlFor="fleet-table-status-select" className="sr-only">Filter by status</label>
             <select
+              id="fleet-table-status-select"
+              name="statusFilter"
+              aria-label="Filter by status"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-3 py-1.5 text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[#172033] dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#08A9E6]"

@@ -15,7 +15,10 @@ class HttpPublisher {
         try {
             const response = await fetch(this.url, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-simulator-key": process.env.SIMULATOR_KEY || "railmind-local-simulator"
+                },
                 body: JSON.stringify(packet),
             });
 

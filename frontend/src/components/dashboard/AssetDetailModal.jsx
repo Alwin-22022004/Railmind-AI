@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { FiX, FiActivity, FiCpu, FiTrendingUp, FiCheckCircle } from "react-icons/fi";
+import { FiX, FiActivity, FiCpu, FiTrendingUp } from "react-icons/fi";
 import StatusBadge from "../telemetry/StatusBadge";
 
 function AssetDetailModal({ asset, onClose }) {

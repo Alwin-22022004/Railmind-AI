@@ -149,12 +149,15 @@ function Register() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               {/* Full Name */}
               <div>
-                <label className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-2 block">
+                <label htmlFor="register-fullname" className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-2 block">
                   Full Name
                 </label>
                 <div className="relative flex items-center">
                   <User className="w-4 h-4 text-slate-500 absolute left-4 pointer-events-none" />
                   <input
+                    id="register-fullname"
+                    name="fullName"
+                    autoComplete="name"
                     type="text"
                     placeholder="Enter your full name"
                     {...register("fullName")}
@@ -172,12 +175,15 @@ function Register() {
 
               {/* Email Address */}
               <div>
-                <label className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-2 block">
+                <label htmlFor="register-email" className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-2 block">
                   Email Address
                 </label>
                 <div className="relative flex items-center">
                   <Mail className="w-4 h-4 text-slate-500 absolute left-4 pointer-events-none" />
                   <input
+                    id="register-email"
+                    name="email"
+                    autoComplete="email"
                     type="email"
                     placeholder="operator@railmind.ai"
                     {...register("email")}
@@ -195,12 +201,15 @@ function Register() {
 
               {/* Password */}
               <div>
-                <label className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-2 block">
+                <label htmlFor="register-password" className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-2 block">
                   Password
                 </label>
                 <div className="relative flex items-center">
                   <Lock className="w-4 h-4 text-slate-500 absolute left-4 pointer-events-none" />
                   <input
+                    id="register-password"
+                    name="password"
+                    autoComplete="new-password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     {...register("password")}
@@ -229,12 +238,15 @@ function Register() {
 
               {/* Confirm Password */}
               <div>
-                <label className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-2 block">
+                <label htmlFor="register-confirmpassword" className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-2 block">
                   Confirm Password
                 </label>
                 <div className="relative flex items-center">
                   <Lock className="w-4 h-4 text-slate-500 absolute left-4 pointer-events-none" />
                   <input
+                    id="register-confirmpassword"
+                    name="confirmPassword"
+                    autoComplete="new-password"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="••••••••"
                     {...register("confirmPassword")}

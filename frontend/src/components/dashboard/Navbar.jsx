@@ -40,8 +40,12 @@ function Navbar({ onMenuClick }) {
       <div className="flex items-center gap-4">
         {/* Search Bar */}
         <div className="hidden sm:flex items-center relative">
+          <label htmlFor="navbar-search-input" className="sr-only">Search compressors</label>
           <FiSearch className="absolute left-3 text-slate-400" size={14} />
           <input
+            id="navbar-search-input"
+            name="navbarSearch"
+            aria-label="Search compressors, telemetry"
             type="text"
             placeholder="Search compressors, telemetry..."
             className="pl-9 pr-4 py-1.5 text-xs bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[#172033] dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#08A9E6] w-48 lg:w-64 transition-all"

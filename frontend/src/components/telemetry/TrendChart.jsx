@@ -99,7 +99,11 @@ function TrendChart({ history = [], selectedId = "COMP-001", height = 300 }) {
           </div>
 
           {/* Parameter Dropdown */}
+          <label htmlFor="trend-chart-param-select" className="sr-only">Telemetry parameter</label>
           <select
+            id="trend-chart-param-select"
+            name="selectedParam"
+            aria-label="Telemetry parameter"
             value={selectedParam}
             onChange={(e) => setSelectedParam(e.target.value)}
             className="px-2.5 py-1 text-xs font-semibold bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-[#172033] dark:text-slate-200 focus:outline-none"

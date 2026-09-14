@@ -163,12 +163,15 @@ function Login() {
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
               {/* Email Address */}
               <div>
-                <label className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-2 block">
+                <label htmlFor="login-email" className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-2 block">
                   Email Address
                 </label>
                 <div className="relative flex items-center">
                   <Mail className="w-4 h-4 text-slate-500 absolute left-4 pointer-events-none" />
                   <input
+                    id="login-email"
+                    name="email"
+                    autoComplete="email"
                     type="email"
                     placeholder="operator@railmind.ai"
                     {...register("email")}
@@ -186,12 +189,15 @@ function Login() {
 
               {/* Password */}
               <div>
-                <label className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-2 block">
+                <label htmlFor="login-password" className="text-[11px] font-bold text-slate-400 tracking-wider uppercase mb-2 block">
                   Password
                 </label>
                 <div className="relative flex items-center">
                   <Lock className="w-4 h-4 text-slate-500 absolute left-4 pointer-events-none" />
                   <input
+                    id="login-password"
+                    name="password"
+                    autoComplete="current-password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     {...register("password")}

@@ -79,6 +79,7 @@ class CompressorPhysics {
         this.telemetry = {
             airPressure: this.constants.RATED_PRESSURE,
             airflowRate: this.constants.RATED_AIRFLOW,
+            airLeakageRate: 2.0,
             buildUpTime: this.constants.BASE_BUILDUP,
             vibration: this.constants.RATED_VIBRATION,
             motorCurrent: this.constants.RATED_CURRENT,
@@ -258,9 +259,12 @@ class CompressorPhysics {
             (motorCurrent - this.constants.RATED_CURRENT) * 1.1 +
             this.noise(1.2);
 
+        let airLeakageRate = Math.min(100, Math.max(0, leakWear * 35 + ((this.constants.RATED_AIRFLOW - airflowRate) / this.constants.RATED_AIRFLOW) * 20 + this.noise(0.2)));
+
         // --- publish ---
         this.telemetry.airPressure = this.round(airPressure);
         this.telemetry.airflowRate = this.round(airflowRate, 1);
+        this.telemetry.airLeakageRate = this.round(airLeakageRate, 1);
         this.telemetry.buildUpTime = this.round(buildUpTime, 1);
         this.telemetry.vibration = this.round(vibration);
         this.telemetry.compressorSpeed = this.round(compressorSpeed, 0);

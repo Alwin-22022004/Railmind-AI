@@ -24,7 +24,7 @@ export function useLatestTelemetry(intervalMs = 3000) {
 
         setAssets((response.data || []).map(mapRowToAsset));
         setLoadError(null);
-      } catch (err) {
+      } catch {
         if (!cancelled) {
           setLoadError("Could not reach the backend. Is the server running?");
         }
@@ -50,13 +50,13 @@ export function useTelemetryHistory(assetCode, limit = 40, intervalMs = 3000) {
   const [history, setHistory] = useState([]);
 
   useEffect(() => {
-    if (!assetCode) {
-      setHistory([]);
-      return;
-    }
     let cancelled = false;
 
     async function fetchHistory() {
+      if (!assetCode) {
+        setHistory([]);
+        return;
+      }
       try {
         const response = await getTelemetryHistory(assetCode, limit);
         if (cancelled || !response.success) return;

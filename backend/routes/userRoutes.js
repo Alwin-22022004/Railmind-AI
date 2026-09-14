@@ -6,6 +6,7 @@ const { requirePermission } = require("../middleware/roleMiddleware");
 
 router.get("/permissions", requireAuth, requirePermission("users.view"), controller.getPermissions);
 router.get("/me/access", requireAuth, controller.getMyAccess);
+router.get("/engineers", requireAuth, requirePermission("alerts.manage"), controller.getMaintenanceEngineers);
 router.get("/", requireAuth, requirePermission("users.view"), controller.getAllUsers);
 router.post("/", requireAuth, requirePermission("users.manage"), controller.createUser);
 router.get("/:id/access", requireAuth, requirePermission("users.manage"), controller.getUserAccess);

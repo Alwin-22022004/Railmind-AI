@@ -214,6 +214,20 @@ const getPermissions = async (req, res) => {
     res.status(500).json({ success:false, message:"Failed to load permissions" });
   }
 };
+const getMaintenanceEngineers = async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, full_name, email, role
+       FROM users
+       WHERE role IN ('MAINTENANCE', 'ADMIN') AND is_active = TRUE
+       ORDER BY full_name ASC`
+    );
+    res.json({ success: true, data: result.rows });
+  } catch (error) {
+    console.error("Failed to load maintenance engineers:", error);
+    res.status(500).json({ success: false, message: "Failed to load maintenance engineers" });
+  }
+};
 
 module.exports = {
   getAllUsers,
@@ -223,4 +237,5 @@ module.exports = {
   getUserAccess,
   getMyAccess,
   getPermissions,
+  getMaintenanceEngineers,
 };

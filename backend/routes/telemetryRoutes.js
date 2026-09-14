@@ -1,14 +1,17 @@
 const express = require("express");
 const router = express.Router();
 const telemetryController = require("../controllers/telemetryController");
+const { requireAuth } = require("../middleware/authMiddleware");
+const { requirePermission } = require("../middleware/roleMiddleware");
+const { requireSimulatorKey } = require("../middleware/simulatorMiddleware");
 
-// POST http://localhost:5000/api/telemetry
-router.post("/", telemetryController.receiveTelemetry);
+// POST /api/telemetry (Simulator ingestion endpoint)
+router.post("/", requireSimulatorKey, telemetryController.receiveTelemetry);
 
-// GET http://localhost:5000/api/telemetry/latest
-router.get("/latest", telemetryController.getLatest);
+// GET /api/telemetry/latest (Dashboard fleet telemetry)
+router.get("/latest", requireAuth, requirePermission("telemetry.view"), telemetryController.getLatest);
 
-// GET http://localhost:5000/api/telemetry/COMP-001/history
-router.get("/:assetCode/history", telemetryController.getHistory);
+// GET /api/telemetry/:assetCode/history (Compressor telemetry trend line)
+router.get("/:assetCode/history", requireAuth, requirePermission("telemetry.view"), telemetryController.getHistory);
 
 module.exports = router;

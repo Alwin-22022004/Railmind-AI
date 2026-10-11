@@ -28,3 +28,9 @@ yarn-error.log*
 .idea/
 .DS_Store
 Thumbs.db
+
+# AI/ML generated datasets and analysis outputs
+ai-model/analysis_output/
+ai-model/prepared_data/
+ai-model/engineered_data/
+ai-model/model_output/

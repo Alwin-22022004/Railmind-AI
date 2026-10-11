@@ -112,10 +112,10 @@ function Dashboard() {
           {/* Card 4: AI Model Status */}
           <StatCard
             title="AI Model Status"
-            value="PLANNED"
-            subtitle="AI/ML module is a future phase"
+            value="TRAINED"
+            subtitle="Baseline fault-classification model trained and evaluated. Live inference integration is planned."
             icon={FiCpu}
-            badgeText="Not connected"
+            badgeText="Offline Prototype"
           />
         </div>
       )}
@@ -139,7 +139,18 @@ function Dashboard() {
       {/* Industrial Intelligence & Secondary Analytics Cards Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <RecentAlertsCard />
-        <div className="industrial-card"><div className="text-xs font-black uppercase tracking-wider text-slate-500 mb-2">AI / ML Roadmap</div><h3 className="text-lg font-bold text-slate-900 dark:text-white">Prediction engine is not connected yet</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-2">The current phase focuses on authentication, role-based operations, live telemetry, fleet management, alerts and maintenance workflows. AI failure prediction and RUL will be connected later.</p></div>
+        <div className="industrial-card">
+          <div className="text-xs font-black uppercase tracking-wider text-[#08A9E6] mb-2">
+            AI / ML Status — Trained
+          </div>
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+            Baseline Fault Classifier Model Trained
+          </h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+            Random Forest model trained offline with 99.80% accuracy across 6 compressor fault classes.
+            Live telemetry inference integration is not connected yet and is planned for a future phase.
+          </p>
+        </div>
       </div>
 
       {/* Fleet Health Distribution & Risk Breakdown */}

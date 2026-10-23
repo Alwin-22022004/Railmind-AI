@@ -4,9 +4,10 @@ const pool = require("../config/db");
 // code (e.g. "COMP-001"). The simulator only knows the code, not the
 // DB id, so every incoming telemetry packet needs this lookup first.
 const findAssetByCode = async (assetCode) => {
+  if (!assetCode) return null;
   const result = await pool.query(
-    "SELECT * FROM assets WHERE asset_code = $1",
-    [assetCode]
+    "SELECT * FROM assets WHERE UPPER(TRIM(asset_code)) = UPPER(TRIM($1))",
+    [String(assetCode).trim()]
   );
   return result.rows[0];
 };
@@ -44,7 +45,7 @@ const updateAsset = async (id, patch) => {
 
 const getActiveSimulationAssets = async () => {
   const result = await pool.query(
-    `SELECT id, asset_code, name, asset_type, zone, status
+    `SELECT id, asset_code, name, asset_type, zone, status, metadata
      FROM assets
      WHERE asset_type = 'AIR_COMPRESSOR'
        AND status = 'Active'

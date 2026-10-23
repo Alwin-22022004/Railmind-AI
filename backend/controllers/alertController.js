@@ -9,29 +9,32 @@ const getAlerts = async (req, res) => {
     const whereClauses = [];
     const params = [];
 
-    if (assetCode) {
-      params.push(assetCode);
-      whereClauses.push(`a.asset_code = $${params.length}`);
+    if (assetCode && typeof assetCode === "string" && assetCode.trim() && assetCode.trim().toUpperCase() !== "ALL") {
+      params.push(assetCode.trim());
+      whereClauses.push(`UPPER(TRIM(a.asset_code)) = UPPER(TRIM($${params.length}))`);
     }
 
-    if (severity) {
-      params.push(severity.toLowerCase());
-      whereClauses.push(`al.level = $${params.length}`);
+    if (severity && typeof severity === "string" && severity.trim() && severity.trim().toUpperCase() !== "ALL") {
+      params.push(severity.trim().toLowerCase());
+      whereClauses.push(`LOWER(TRIM(al.level)) = $${params.length}`);
     }
 
-    if (status) {
-      const upperStatus = status.toUpperCase();
+    if (status && typeof status === "string" && status.trim() && status.trim().toUpperCase() !== "ALL") {
+      const upperStatus = status.trim().toUpperCase();
       if (upperStatus === "RESOLVED") {
         whereClauses.push(`al.is_resolved = TRUE`);
       } else if (upperStatus === "ACKNOWLEDGED") {
         whereClauses.push(`al.is_resolved = FALSE AND al.is_acknowledged = TRUE`);
       } else if (upperStatus === "ACTIVE") {
         whereClauses.push(`al.is_resolved = FALSE`);
+      } else if (upperStatus === "UNACKNOWLEDGED") {
+        whereClauses.push(`al.is_resolved = FALSE AND al.is_acknowledged = FALSE`);
       }
     }
 
     const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(" AND ")}` : "";
-    const maxRows = parseInt(limit, 10) || 200;
+    const parsedLimit = parseInt(limit, 10);
+    const maxRows = (!isNaN(parsedLimit) && parsedLimit > 0) ? Math.min(parsedLimit, 500) : 200;
 
     params.push(maxRows);
     const limitSql = `LIMIT $${params.length}`;

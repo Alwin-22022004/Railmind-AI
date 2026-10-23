@@ -36,7 +36,9 @@ function Analytics() {
   const { assets, loading, loadError } = useLatestTelemetry();
   const [selectedId, setSelectedId] = useState(null);
   const activeId = selectedId || assets[0]?.id || null;
-  const history = useTelemetryHistory(activeId, 60);
+  const history = useTelemetryHistory(activeId, 100);
+
+  const selectedAsset = assets.find((a) => a.id === activeId) || null;
 
   return (
     <DashboardLayout>
@@ -64,7 +66,7 @@ function Analytics() {
         )}
       </div>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-        Historical trend lines across the last 60 readings for the selected compressor.
+        Historical trend lines across the last 100 readings for the selected compressor.
       </p>
 
       <TelemetryStatusBanner loadError={loadError} loading={loading} isEmpty={!loading && assets.length === 0} />
@@ -79,7 +81,13 @@ function Analytics() {
               <FiTrendingUp className="text-cyan-600 dark:text-cyan-400" size={18} />
               <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{group.title}</h3>
             </div>
-            <TrendChart history={history} metrics={group.metrics} />
+            <TrendChart
+              history={history}
+              selectedId={activeId}
+              healthStatus={selectedAsset?.healthStatus}
+              metrics={group.metrics}
+              title={group.title}
+            />
           </div>
         ))}
       </div>

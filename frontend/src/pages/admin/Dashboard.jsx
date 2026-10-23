@@ -23,6 +23,7 @@ function Dashboard() {
   const [activeAlerts, setActiveAlerts] = useState([]);
 
   const activeId = selectedId || assets[0]?.id || null;
+  const selectedAsset = assets.find((a) => a.id === activeId) || null;
   const history = useTelemetryHistory(activeId, 40);
 
   useEffect(() => {
@@ -134,7 +135,12 @@ function Dashboard() {
       )}
 
       {/* Compressor Performance Trend Section */}
-      <TrendChart history={history} selectedId={selectedId} height={320} />
+      <TrendChart
+        history={history}
+        selectedId={activeId}
+        healthStatus={selectedAsset?.healthStatus}
+        height={320}
+      />
 
       {/* Industrial Intelligence & Secondary Analytics Cards Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

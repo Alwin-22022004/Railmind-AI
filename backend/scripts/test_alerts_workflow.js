@@ -254,29 +254,34 @@ async function runTests() {
   }
 }
 
+const simStateByAsset = {};
+
 async function simulateTelemetry(assetCode, simPayload) {
   const asset = (await pool.query("SELECT id FROM assets WHERE asset_code=$1", [assetCode])).rows[0];
+  const prevState = simStateByAsset[assetCode] || {
+    airPressure: 8.5,
+    airflowRate: 600,
+    airLeakageRate: 2.0,
+    vibration: 2.0,
+    motorCurrent: 20,
+    motorVoltage: 415,
+    motorTemperature: 55,
+    compressorSpeed: 1450,
+    oilPressure: 3.2,
+    oilTemperature: 55,
+    runningHours: 100,
+    compressorLoad: 50,
+    startStopCycles: 10,
+  };
+  const mergedTelemetry = { ...prevState, ...simPayload };
+  simStateByAsset[assetCode] = mergedTelemetry;
+
   const reqMock = {
     body: {
       assetId: assetCode,
       timestamp: new Date(),
       assetState: "Running",
-      telemetry: {
-        airPressure: 8.5,
-        airflowRate: 600,
-        airLeakageRate: 2.0,
-        vibration: 2.0,
-        motorCurrent: 20,
-        motorVoltage: 415,
-        motorTemperature: 55,
-        compressorSpeed: 1450,
-        oilPressure: 3.2,
-        oilTemperature: 55,
-        runningHours: 100,
-        compressorLoad: 50,
-        startStopCycles: 10,
-        ...simPayload,
-      },
+      telemetry: mergedTelemetry,
       environment: { ambientTemperature: 30 },
     },
   };

@@ -58,12 +58,13 @@ class CompressorPhysics {
         };
 
         // Internal wear states (0 = new, 1 = failed)
+        const wearOpts = options.wear || {};
         this.wear = {
-            leakWear: options.initialWear ?? Math.random() * 0.03,
-            bearingWear: options.initialWear ?? Math.random() * 0.03,
-            oilWear: options.initialWear ?? Math.random() * 0.03,
-            motorWear: options.initialWear ?? Math.random() * 0.03,
-            filterWear: options.initialWear ?? Math.random() * 0.03
+            leakWear: wearOpts.leakWear ?? options.initialWear ?? (Math.random() * 0.03),
+            bearingWear: wearOpts.bearingWear ?? options.initialWear ?? (Math.random() * 0.03),
+            oilWear: wearOpts.oilWear ?? options.initialWear ?? (Math.random() * 0.03),
+            motorWear: wearOpts.motorWear ?? options.initialWear ?? (Math.random() * 0.03),
+            filterWear: wearOpts.filterWear ?? options.initialWear ?? (Math.random() * 0.03)
         };
 
         // Which wear channel (if any) this unit is fated to fail from,

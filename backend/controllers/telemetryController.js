@@ -10,13 +10,14 @@ const receiveTelemetry = async (req, res) => {
 
     // The simulator identifies the asset by its code (e.g. "COMP-001"),
     // not by the database's internal numeric id — so we look it up first.
-    const assetCode = body.assetId;
-    if (!assetCode) {
+    const rawAssetCode = body.assetId || body.assetCode;
+    if (!rawAssetCode) {
       return res.status(400).json({
         success: false,
         message: "Missing assetId in telemetry payload",
       });
     }
+    const assetCode = String(rawAssetCode).trim().toUpperCase();
 
     const asset = await assetModel.findAssetByCode(assetCode);
     if (!asset) {
@@ -36,13 +37,13 @@ const receiveTelemetry = async (req, res) => {
 
     // The simulator's packet looks like:
     // { assetId, timestamp, assetState, environment: {...}, telemetry: {...}, health: {...}, events: [] }
-    // We pull the specific numbers we care about out of those nested
-    // objects and flatten them into our simple table columns.
-    const sim = body.telemetry || {};
-    const env = body.environment || {};
+    // Telemetry fields may be nested under body.telemetry or provided flat at the top level of body.
+    const rawSim = body.telemetry && typeof body.telemetry === "object" ? body.telemetry : {};
+    const sim = { ...body, ...rawSim };
+    const env = body.environment && typeof body.environment === "object" ? body.environment : {};
 
     const reading = {
-      recordedAt: body.timestamp,
+      recordedAt: body.timestamp || new Date(),
       airPressure: sim.airPressure,
       airflowRate: sim.airflowRate,
       vibration: sim.vibration,
@@ -55,13 +56,13 @@ const receiveTelemetry = async (req, res) => {
       runningHours: sim.runningHours,
       compressorLoad: sim.compressorLoad,
       startStopCycles: sim.startStopCycles,
-      ambientTemperature: env.ambientTemperature,
-      assetState: body.assetState,
+      ambientTemperature: env.ambientTemperature !== undefined ? env.ambientTemperature : sim.ambientTemperature,
+      assetState: body.assetState || sim.assetState,
     };
 
     const saved = await telemetryModel.insertTelemetry(asset.id, reading, body);
 
-    await createRuleAlerts(asset.id, assetCode, sim);
+    await evaluateRuleAlerts(asset.id, assetCode, sim);
 
     res.status(201).json({
       success: true,
@@ -112,110 +113,159 @@ const getHistory = async (req, res) => {
   }
 };
 
-
-async function createRuleAlerts(assetId, assetCode, sim) {
-  const rules = [];
-
-  if (sim.vibration !== undefined && Number(sim.vibration) > 4.0) {
-    rules.push({
-      level: "warning",
-      alertType: "HIGH_VIBRATION",
-      title: "HIGH VIBRATION",
-      message: `Vibration on ${assetCode} is ${sim.vibration} mm/s (threshold: 4.0 mm/s).`,
-      parameter: "vibration",
-      actualValue: Number(sim.vibration),
-      thresholdValue: 4.0,
-      recommendation: "Inspect bearings, mounting and alignment.",
-    });
+// Helper: validate whether a reading is a valid, finite numeric value.
+// Missing, null, boolean, array, object, whitespace, or NaN readings must NEVER
+// be treated as proof of condition recovery or as threshold breaches.
+function isValidNumericReading(val) {
+  if (val === undefined || val === null) return false;
+  if (typeof val === "boolean") return false;
+  if (typeof val === "object") return false;
+  if (typeof val === "string") {
+    if (val.trim() === "") return false;
   }
+  const num = Number(val);
+  return typeof num === "number" && Number.isFinite(num);
+}
 
-  if (sim.motorTemperature !== undefined && Number(sim.motorTemperature) > 82.0) {
-    rules.push({
-      level: "warning",
-      alertType: "HIGH_MOTOR_TEMPERATURE",
-      title: "HIGH MOTOR TEMPERATURE",
-      message: `Motor temperature on ${assetCode} is ${sim.motorTemperature} °C (threshold: 82.0 °C).`,
-      parameter: "motorTemperature",
-      actualValue: Number(sim.motorTemperature),
-      thresholdValue: 82.0,
-      recommendation: "Inspect cooling, motor load and ventilation.",
-    });
-  }
+const RULE_DEFINITIONS = [
+  {
+    alertType: "HIGH_VIBRATION",
+    parameter: "vibration",
+    thresholdValue: 4.0,
+    unit: "mm/s",
+    level: "warning",
+    title: "HIGH VIBRATION",
+    buildMessage: (assetCode, val) => `Vibration on ${assetCode} is ${val} mm/s (threshold: 4.0 mm/s).`,
+    recommendation: "Inspect bearings, mounting and alignment.",
+    isBreached: (val) => val > 4.0,
+  },
+  {
+    alertType: "HIGH_MOTOR_TEMPERATURE",
+    parameter: "motorTemperature",
+    thresholdValue: 82.0,
+    unit: "°C",
+    level: "warning",
+    title: "HIGH MOTOR TEMPERATURE",
+    buildMessage: (assetCode, val) => `Motor temperature on ${assetCode} is ${val} °C (threshold: 82.0 °C).`,
+    recommendation: "Inspect cooling, motor load and ventilation.",
+    isBreached: (val) => val > 82.0,
+  },
+  {
+    alertType: "LOW_OIL_PRESSURE",
+    parameter: "oilPressure",
+    thresholdValue: 2.5,
+    unit: "bar",
+    level: "critical",
+    title: "LOW OIL PRESSURE",
+    buildMessage: (assetCode, val) => `Oil pressure on ${assetCode} is ${val} bar (threshold: 2.5 bar).`,
+    recommendation: "Inspect lubrication system, oil level and pump.",
+    isBreached: (val) => val < 2.5,
+  },
+  {
+    alertType: "LOW_AIR_PRESSURE",
+    parameter: "airPressure",
+    thresholdValue: 8.0,
+    unit: "bar",
+    level: "warning",
+    title: "LOW AIR PRESSURE",
+    buildMessage: (assetCode, val) => `Air pressure on ${assetCode} is ${val} bar (threshold: 8.0 bar).`,
+    recommendation: "Inspect compressor output, valves and air circuit.",
+    isBreached: (val) => val < 8.0,
+  },
+  {
+    alertType: "AIR_LEAKAGE",
+    parameter: "airLeakageRate",
+    thresholdValue: 12.0,
+    unit: "%",
+    level: "warning",
+    title: "AIR LEAKAGE",
+    buildMessage: (assetCode, val) => `Air leakage rate on ${assetCode} is ${val}% (threshold: 12.0%).`,
+    recommendation: "Inspect valves, hoses, seals and fittings.",
+    isBreached: (val) => val > 12.0,
+  },
+];
 
-  if (sim.oilPressure !== undefined && Number(sim.oilPressure) < 2.5) {
-    rules.push({
-      level: "critical",
-      alertType: "LOW_OIL_PRESSURE",
-      title: "LOW OIL PRESSURE",
-      message: `Oil pressure on ${assetCode} is ${sim.oilPressure} bar (threshold: 2.5 bar).`,
-      parameter: "oilPressure",
-      actualValue: Number(sim.oilPressure),
-      thresholdValue: 2.5,
-      recommendation: "Inspect lubrication system, oil level and pump.",
-    });
-  }
+async function evaluateRuleAlerts(assetId, assetCode, sim) {
+  if (!sim || typeof sim !== "object") return;
 
-  if (sim.airPressure !== undefined && Number(sim.airPressure) < 8.0) {
-    rules.push({
-      level: "warning",
-      alertType: "LOW_AIR_PRESSURE",
-      title: "LOW AIR PRESSURE",
-      message: `Air pressure on ${assetCode} is ${sim.airPressure} bar (threshold: 8.0 bar).`,
-      parameter: "airPressure",
-      actualValue: Number(sim.airPressure),
-      thresholdValue: 8.0,
-      recommendation: "Inspect compressor output, valves and air circuit.",
-    });
-  }
+  for (const rule of RULE_DEFINITIONS) {
+    const rawVal = sim[rule.parameter];
+    // If the sensor value is missing, null, empty or non-numeric, skip evaluation entirely.
+    // It must NOT be treated as a recovery and must NOT trigger an alert.
+    if (!isValidNumericReading(rawVal)) {
+      continue;
+    }
+    const numVal = Number(rawVal);
 
-  if (sim.airLeakageRate !== undefined && Number(sim.airLeakageRate) > 12.0) {
-    rules.push({
-      level: "warning",
-      alertType: "AIR_LEAKAGE",
-      title: "AIR LEAKAGE",
-      message: `Air leakage rate on ${assetCode} is ${sim.airLeakageRate}% (threshold: 12.0%).`,
-      parameter: "airLeakageRate",
-      actualValue: Number(sim.airLeakageRate),
-      thresholdValue: 12.0,
-      recommendation: "Inspect valves, hoses, seals and fittings.",
-    });
-  }
+    const isBreached = rule.isBreached(numVal);
 
-  for (const rule of rules) {
-    // 5-minute deduplication per asset and alert type for active alerts
-    const existing = await pool.query(
-      `SELECT id FROM alerts
+    // Query active (unresolved) rule-generated alert for this asset and rule type
+    const existingActive = await pool.query(
+      `SELECT id, actual_value, created_at, source
+       FROM alerts
        WHERE asset_id = $1
-         AND (alert_type = $2 OR title = $3)
+         AND alert_type = $2
+         AND source = 'rule'
          AND is_resolved = FALSE
-         AND created_at > NOW() - INTERVAL '5 minutes'
        LIMIT 1`,
-      [assetId, rule.alertType, rule.title]
+      [assetId, rule.alertType]
     );
 
-    if (!existing.rows.length) {
-      await pool.query(
-        `INSERT INTO alerts (
-          asset_id, level, title, message, source, alert_type,
-          trigger_parameter, actual_value, threshold_value, recommendation
-        ) VALUES ($1, $2, $3, $4, 'rule', $5, $6, $7, $8, $9)`,
-        [
-          assetId,
-          rule.level,
-          rule.title,
-          rule.message,
-          rule.alertType,
-          rule.parameter,
-          rule.actualValue,
-          rule.thresholdValue,
-          rule.recommendation,
-        ]
-      );
+    const activeAlert = existingActive.rows[0];
+
+    if (isBreached) {
+      // Condition is abnormal:
+      // ALERT -> ALERT: If an active alert already exists, keep it active without duplicate inserts
+      if (!activeAlert) {
+        // NORMAL -> ALERT transition: create new active alert record
+        await pool.query(
+          `INSERT INTO alerts (
+            asset_id, level, title, message, source, alert_type,
+            trigger_parameter, actual_value, threshold_value, recommendation,
+            is_resolved, is_acknowledged
+          ) VALUES ($1, $2, $3, $4, 'rule', $5, $6, $7, $8, $9, FALSE, FALSE)`,
+          [
+            assetId,
+            rule.level,
+            rule.title,
+            rule.buildMessage(assetCode, numVal),
+            rule.alertType,
+            rule.parameter,
+            numVal,
+            rule.thresholdValue,
+            rule.recommendation,
+          ]
+        );
+      }
+    } else {
+      // Condition has returned to normal range:
+      // ALERT -> NORMAL transition: automatically recover active alert while preserving history
+      if (activeAlert) {
+        const recoveryNote = `Condition recovered: ${rule.parameter} returned to normal (${numVal} ${rule.unit}).`;
+        await pool.query(
+          `UPDATE alerts
+           SET is_resolved = TRUE,
+               resolved_at = NOW(),
+               resolved_by = NULL,
+               resolution_notes = $1
+           WHERE id = $2 AND is_resolved = FALSE`,
+          [recoveryNote, activeAlert.id]
+        );
+      }
+      // NORMAL -> NORMAL: condition is normal and no active alert exists, do nothing
     }
   }
 }
+
+// Backwards compatibility alias
+const createRuleAlerts = evaluateRuleAlerts;
+
 module.exports = {
   receiveTelemetry,
   getLatest,
   getHistory,
+  evaluateRuleAlerts,
+  createRuleAlerts,
+  isValidNumericReading,
+  RULE_DEFINITIONS,
 };

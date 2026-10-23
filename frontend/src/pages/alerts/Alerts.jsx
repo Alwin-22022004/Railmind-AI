@@ -8,7 +8,8 @@ import {
   FiTool,
   FiClock,
   FiCornerDownRight,
-  FiX
+  FiX,
+  FiRefreshCw
 } from "react-icons/fi";
 import DashboardLayout from "../../components/dashboard/DashboardLayout";
 import { useAuth } from "../../context/AuthContext";
@@ -27,11 +28,14 @@ function Alerts() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [engineers, setEngineers] = useState([]);
+  const [fetchError, setFetchError] = useState("");
 
   // Filters
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [severityFilter, setSeverityFilter] = useState("ALL");
   const [assetFilter, setAssetFilter] = useState("");
+
+  const hasActiveFilters = statusFilter !== "ALL" || severityFilter !== "ALL" || Boolean(assetFilter.trim());
 
   // Modals & Active state
   const [assigningAlertId, setAssigningAlertId] = useState(null);
@@ -49,8 +53,11 @@ function Alerts() {
 
       const res = await getAlerts(filters);
       setAlerts(res.data || []);
+      setFetchError("");
     } catch (e) {
       console.error("Error loading alerts:", e);
+      const msg = e.response?.data?.message || e.message || "Failed to load alerts from server.";
+      setFetchError(msg);
     } finally {
       setLoading(false);
     }
@@ -194,10 +201,37 @@ function Alerts() {
         </div>
       )}
 
+      {/* Fetch Error Banner with Retry */}
+      {fetchError && (
+        <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-500 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <FiAlertTriangle className="shrink-0 text-rose-500" size={20} />
+            <div>
+              <p className="text-xs font-black uppercase tracking-wider">Failed to load alerts</p>
+              <p className="text-xs text-rose-600 dark:text-rose-400 mt-0.5">{fetchError}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setLoading(true);
+              loadData();
+            }}
+            className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1.5 shrink-0 transition-colors shadow-sm"
+          >
+            <FiRefreshCw size={13} className={loading ? "animate-spin" : ""} />
+            <span>Retry</span>
+          </button>
+        </div>
+      )}
+
       {/* Alerts List */}
-      {loading && !alerts.length ? (
-        <p className="text-sm text-slate-400 py-8">Loading alerts workflow…</p>
-      ) : (
+      {loading && !alerts.length && !fetchError ? (
+        <div className="py-16 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <FiRefreshCw className="mx-auto text-cyan-500 animate-spin mb-3" size={28} />
+          <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">Loading alerts workflow…</p>
+          <p className="text-xs text-slate-400 mt-1">Retrieving system diagnostics and fleet telemetry alerts</p>
+        </div>
+      ) : fetchError && !alerts.length ? null : (
         <div className="space-y-4">
           {alerts.map((a) => {
             const isCritical = a.level === "critical";
@@ -278,19 +312,27 @@ function Alerts() {
                       </p>
 
                       {/* Sensor detail strip if present */}
-                      {(a.trigger_parameter || a.actual_value !== null) && (
+                      {(a.trigger_parameter || (a.actual_value !== null && a.actual_value !== undefined && a.actual_value !== "")) && (
                         <div className="inline-flex flex-wrap items-center gap-3 text-xs font-mono bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400">
-                          <span>
-                            Parameter: <strong className="text-slate-800 dark:text-slate-200">{a.trigger_parameter}</strong>
-                          </span>
-                          <span>·</span>
-                          <span>
-                            Sensor Value: <strong className="text-slate-800 dark:text-slate-200">{a.actual_value}</strong>
-                          </span>
-                          <span>·</span>
-                          <span>
-                            Threshold: <strong className="text-slate-800 dark:text-slate-200">{a.threshold_value}</strong>
-                          </span>
+                          {a.trigger_parameter && (
+                            <span>
+                              Parameter: <strong className="text-slate-800 dark:text-slate-200">{a.trigger_parameter}</strong>
+                            </span>
+                          )}
+                          {a.trigger_parameter && (a.actual_value !== null && a.actual_value !== undefined && a.actual_value !== "") && <span>·</span>}
+                          {(a.actual_value !== null && a.actual_value !== undefined && a.actual_value !== "") && (
+                            <span>
+                              Sensor Value: <strong className="text-slate-800 dark:text-slate-200">{a.actual_value}</strong>
+                            </span>
+                          )}
+                          {(a.threshold_value !== null && a.threshold_value !== undefined && a.threshold_value !== "") && (
+                            <>
+                              <span>·</span>
+                              <span>
+                                Threshold: <strong className="text-slate-800 dark:text-slate-200">{a.threshold_value}</strong>
+                              </span>
+                            </>
+                          )}
                         </div>
                       )}
 
@@ -329,7 +371,7 @@ function Alerts() {
 
                         {isResolved && (
                           <span className="text-emerald-500 font-medium">
-                            Resolved by {a.resolved_by_name || "Engineer"}
+                            Resolved by {a.resolved_by_name || (a.source === "rule" ? "System (Auto-Recovery)" : "Engineer")}
                           </span>
                         )}
                       </div>
@@ -393,10 +435,36 @@ function Alerts() {
 
           {!alerts.length && (
             <div className="text-center py-16 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700">
-              <FiCheckCircle size={36} className="mx-auto text-slate-300 dark:text-slate-600 mb-2" />
-              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">
-                No alerts match the selected filters.
-              </p>
+              <FiCheckCircle size={36} className="mx-auto text-emerald-500 mb-2" />
+              {hasActiveFilters ? (
+                <>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                    No alerts match the selected filters.
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Try adjusting or clearing your status, severity, or compressor filters.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setStatusFilter("ALL");
+                      setSeverityFilter("ALL");
+                      setAssetFilter("");
+                    }}
+                    className="mt-4 px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 transition-colors"
+                  >
+                    Clear All Filters
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                    No alerts recorded across the fleet.
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    All railway air compressor units are operating within normal configured thresholds.
+                  </p>
+                </>
+              )}
             </div>
           )}
         </div>

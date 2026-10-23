@@ -189,6 +189,8 @@ function Compressors() {
             </div>
             <TrendChart
               history={history}
+              selectedId={activeId}
+              healthStatus={selectedAsset?.healthStatus}
               metrics={[
                 { key: "airPressure", name: "Air Pressure (bar)", color: "#0891b2", axis: "left" },
                 { key: "compressorSpeed", name: "Speed (RPM)", color: "#8b5cf6", axis: "right" },
